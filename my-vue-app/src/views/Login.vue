@@ -19,6 +19,7 @@
         <label><input type="checkbox" /> Remember me</label>
         <a href="#">Forgot Password?</a>
       </div>
+      <button class="signup-btn" @click="goToSignUp">SIGN UP</button>
       <button @click="login">LOGIN</button>
     </div>
   </div>
@@ -27,30 +28,63 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { auth, db } from '../firebase'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
 
-const login = () => {
-  error.value = ''
+// ✅ Move this OUTSIDE of login()
+const goToSignUp = () => {
+  router.push('/signup')
+}
 
-  // Basic email format check
+const login = async () => {
+  error.value = ''
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   if (!email.value || !password.value) {
     error.value = 'Email and password are required.'
-  } else if (!emailPattern.test(email.value)) {
-    error.value = 'Please enter a valid email address.'
-  } else if (password.value.length < 6) {
+    return
+  }
+  if (!emailPattern.test(email.value)) {
+    error.value = 'Invalid email format.'
+    return
+  }
+  if (password.value.length < 6) {
     error.value = 'Password must be at least 6 characters.'
-  } else {
-    // If validation passed, proceed
-    router.push('/')
+    return
+  }
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+    const uid = userCredential.user.uid
+
+    // ✅ Read role from Firestore using UID
+    const userDoc = await getDoc(doc(db, 'users', uid))
+    if (userDoc.exists()) {
+      const role = userDoc.data().role
+
+      if (role === 'admin') {
+        router.push('/') // Admin Dashboard
+      } else if (role === 'user') {
+        router.push('/user') // Create this route if needed
+      } else {
+        error.value = 'Unauthorized role access.'
+      }
+    } else {
+      error.value = 'User data not found in Firestore.'
+    }
+
+  } catch (err) {
+    error.value = err.message || 'Login failed.'
   }
 }
 </script>
+
 
 <style scoped>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
@@ -100,6 +134,21 @@ const login = () => {
   color: #133a6f;
 }
 
+.signup-btn {
+  width: 100%;
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.signup-btn:hover {
+  background-color: #4a089c;
+}
+
 input {
   width: 100%;
   padding: 10px 10px 10px 34px;
@@ -141,5 +190,4 @@ button:hover {
   font-weight: bold;
   text-align: center;
 }
-
 </style>
