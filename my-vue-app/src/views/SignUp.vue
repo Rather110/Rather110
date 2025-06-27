@@ -9,12 +9,6 @@
       <input type="email" placeholder="Email" v-model="email" />
       <input type="password" placeholder="Password" v-model="password" />
 
-      <select v-model="role">
-        <option value="" disabled>Select Role</option>
-        <option value="admin">Admin</option>
-        <option value="user">User</option>
-      </select>
-
       <button @click="signUp">Sign Up</button>
       <router-link to="/login" class="login-link">Already have an account? Login</router-link>
     </div>
@@ -26,18 +20,17 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore' // ✅ Use setDoc, not addDoc
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
-const role = ref('')
 const error = ref('')
 const router = useRouter()
 
 const signUp = async () => {
   error.value = ''
-  if (!name.value || !email.value || !password.value || !role.value) {
+  if (!name.value || !email.value || !password.value) {
     error.value = 'All fields are required.'
     return
   }
@@ -46,12 +39,11 @@ const signUp = async () => {
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
     const uid = userCredential.user.uid
 
-    // ✅ Set document in root-level "users" collection with UID as doc ID
     await setDoc(doc(db, 'users', uid), {
       uid,
       name: name.value,
       email: email.value,
-      role: role.value,
+      role: 'user', // ✅ Always set role to 'user'
       createdAt: serverTimestamp()
     })
 
@@ -81,8 +73,7 @@ const signUp = async () => {
   text-align: center;
 }
 
-input,
-select {
+input {
   width: 100%;
   padding: 10px;
   margin-bottom: 15px;
