@@ -1,40 +1,17 @@
 <template>
   <div class="forgot-password">
     <h2>Reset Password</h2>
-    <p v-if="!stepTwo">Enter your email to verify your account.</p>
+    <p>Enter your email, and we'll send you a password reset link.</p>
 
-    <!-- Step 1: Verify Email -->
-    <div v-if="!stepTwo">
-      <input
-        type="email"
-        v-model="email"
-        placeholder="Enter your email"
-        class="input-box"
-      />
-      <button @click="verifyEmail" class="reset-btn" :disabled="loading">
-        {{ loading ? "Verifying..." : "Next" }}
-      </button>
-    </div>
-
-    <!-- Step 2: Change Password -->
-    <div v-else>
-      <p>Enter your new password.</p>
-      <input
-        type="password"
-        v-model="newPassword"
-        placeholder="New Password"
-        class="input-box"
-      />
-      <input
-        type="password"
-        v-model="confirmPassword"
-        placeholder="Confirm Password"
-        class="input-box"
-      />
-      <button @click="updatePasswordNow" class="reset-btn" :disabled="loading">
-        {{ loading ? "Updating..." : "Update Password" }}
-      </button>
-    </div>
+    <input
+      type="email"
+      v-model="email"
+      placeholder="Enter your email"
+      class="input-box"
+    />
+    <button @click="resetPassword" class="reset-btn" :disabled="loading">
+      {{ loading ? "Sending..." : "Send Reset Link" }}
+    </button>
 
     <p v-if="message" class="message">{{ message }}</p>
     <p v-if="error" class="error">{{ error }}</p>
@@ -45,22 +22,18 @@
 
 <script setup>
 import { ref } from 'vue'
-import { signInWithEmailAndPassword, updatePassword } from 'firebase/auth'
+import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../firebase'
 import { useRouter } from 'vue-router'
 
 const email = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
 const message = ref('')
 const error = ref('')
 const loading = ref(false)
-const stepTwo = ref(false) // ✅ Controls when to show password fields
-
 const router = useRouter()
 
-// ✅ Step 1: Verify Email by logging in anonymously (requires password in real case)
-const verifyEmail = async () => {
+// ✅ Send Firebase Reset Password Email
+const resetPassword = async () => {
   if (!email.value) {
     error.value = 'Please enter your email.'
     return
@@ -71,50 +44,19 @@ const verifyEmail = async () => {
   message.value = ''
 
   try {
-    // Firebase does not allow direct email verification without login,
-    // so we just move to step 2 assuming email exists in the system.
-    stepTwo.value = true
-    message.value = 'Email verified. Please enter a new password.'
+    await sendPasswordResetEmail(auth, email.value)
+    message.value =
+      'A password reset email has been sent. Please check your inbox.'
+    email.value = ''
   } catch (err) {
     console.error(err)
-    error.value = 'Verification failed. Please check your email.'
-  } finally {
-    loading.value = false
-  }
-}
-
-// ✅ Step 2: Update password
-const updatePasswordNow = async () => {
-  if (!newPassword.value || !confirmPassword.value) {
-    error.value = 'Please fill in all password fields.'
-    return
-  }
-  if (newPassword.value.length < 6) {
-    error.value = 'Password must be at least 6 characters.'
-    return
-  }
-  if (newPassword.value !== confirmPassword.value) {
-    error.value = 'Passwords do not match.'
-    return
-  }
-
-  loading.value = true
-  error.value = ''
-  message.value = ''
-
-  try {
-    // ✅ Update password for current logged-in user
-    if (auth.currentUser) {
-      await updatePassword(auth.currentUser, newPassword.value)
-      message.value = 'Password updated successfully!'
-      newPassword.value = ''
-      confirmPassword.value = ''
+    if (err.code === 'auth/user-not-found') {
+      error.value = 'No account found with this email.'
+    } else if (err.code === 'auth/invalid-email') {
+      error.value = 'Please enter a valid email address.'
     } else {
-      error.value = 'No authenticated user found. Please log in again.'
+      error.value = 'Failed to send reset email. Try again later.'
     }
-  } catch (err) {
-    console.error(err)
-    error.value = 'Failed to update password. Please try again.'
   } finally {
     loading.value = false
   }
