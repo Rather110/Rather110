@@ -3,7 +3,49 @@
     <!-- Top Bar -->
     <div class="top-bar">
       <div class="top-actions">
-        <img src="/images/cart.png" alt="Cart" class="icon cart-icon" @click="goToCart" />
+        <!-- ✅ Old Cart Image (Now Works as Dropdown Trigger) -->
+        <div class="cart-wrapper">
+          <img
+            src="/images/cart.png"
+            alt="Cart"
+            class="icon cart-icon"
+            @click="toggleCart"
+          />
+          <!-- Dropdown Cart -->
+          <div v-if="isCartOpen" class="cart-dropdown">
+            <h3>Your Cart</h3>
+            <div v-if="cartStore.cartItems.length > 0">
+              <div
+                v-for="item in cartStore.cartItems"
+                :key="item.id"
+                class="cart-item"
+              >
+                <img :src="item.image" class="cart-img" alt="product" />
+                <div class="cart-info">
+                  <p class="cart-name">{{ item.name }}</p>
+                  <p class="cart-price">
+                    RM {{ (item.price * item.quantity).toFixed(2) }}
+                  </p>
+                  <p class="cart-quantity">Qty: {{ item.quantity }}</p>
+                </div>
+                <button
+                  class="remove-btn"
+                  @click="cartStore.removeFromCart(item.id)"
+                >
+                  ✖
+                </button>
+              </div>
+              <div class="cart-total">
+                <strong>
+                  Total: RM {{ totalPrice.toFixed(2) }}
+                </strong>
+              </div>
+              <button class="checkout-btn">Proceed to Checkout</button>
+            </div>
+            <p v-else>Your cart is empty.</p>
+          </div>
+        </div>
+
         <button class="logout-btn" @click="logout">Logout</button>
       </div>
     </div>
@@ -22,7 +64,9 @@
     <section class="hero">
       <div class="hero-text">
         <h1>Timeless Luxury Watches</h1>
-        <p>Explore the finest collection of modern and sport watches built for style and performance.</p>
+        <p>
+          Explore the finest collection of modern and sport watches built for style and performance.
+        </p>
         <button @click="explore">Explore Collection</button>
       </div>
       <img src="/images/herobanner.jpg" alt="Hero Watch" class="hero-image" />
@@ -49,18 +93,26 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase'
+import { useCartStore } from '../stores/cart' // ✅ Pinia store
 
 // Router
 const router = useRouter()
 
-// Actions
+// Cart
+const cartStore = useCartStore()
+const isCartOpen = ref(false)
+const toggleCart = () => {
+  isCartOpen.value = !isCartOpen.value
+}
+
+const totalPrice = computed(() =>
+  cartStore.cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+)
+
+// Logout
 const logout = async () => {
   await signOut(auth)
   router.push('/login')
-}
-
-const goToCart = () => {
-  router.push('/cart')
 }
 
 const explore = () => {
@@ -143,6 +195,72 @@ const filteredWatches = computed(() => {
 }
 .logout-btn:hover {
   background-color: #0b2652;
+}
+
+/* Cart Dropdown */
+.cart-wrapper {
+  position: relative;
+}
+.cart-dropdown {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  width: 280px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  z-index: 100;
+}
+.cart-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+.cart-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+.cart-info {
+  flex: 1;
+  margin-left: 8px;
+}
+.cart-name {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+.cart-price,
+.cart-quantity {
+  font-size: 0.75rem;
+  color: #555;
+}
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.cart-total {
+  text-align: right;
+  margin-top: 5px;
+  font-size: 0.9rem;
+}
+.checkout-btn {
+  width: 100%;
+  background-color: #133a6f;
+  color: white;
+  padding: 6px;
+  border: none;
+  border-radius: 5px;
+  margin-top: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
 /* Search and Filter */

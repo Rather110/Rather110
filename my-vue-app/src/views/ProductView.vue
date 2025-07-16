@@ -48,16 +48,20 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { useCartStore } from '../stores/cart' // ✅ Import Cart Store
 
 const route = useRoute()
 const router = useRouter()
 const product = ref(null)
+const cartStore = useCartStore() // ✅ Initialize cart store
 
 const getImage = (name) => {
   const lower = name.toLowerCase()
   if (lower.includes('metaretail')) return '/images/redbvlgari.jpg'
   if (lower.includes('casio')) return '/images/casio.jpg'
-  if (lower.includes('g-shock')) return '/images/gshock.jpg'
+  if (lower.includes('g-shock')) return '/images/sportwatch.jpg'
+  if (lower.includes('bvlgari')) return '/images/bvlgari.jpg'
+  if (lower.includes('test1')) return '/images/modernwatch.png'
   return '/images/default.jpg'
 }
 
@@ -73,11 +77,18 @@ const fetchProduct = async () => {
 
 const buyProduct = async () => {
   if (product.value.stock > 0) {
+    // ✅ Decrease stock in Firestore
     const productRef = doc(db, 'watches', product.value.id)
-    await updateDoc(productRef, {
-      stock: product.value.stock - 1
-    })
+    await updateDoc(productRef, { stock: product.value.stock - 1 })
     product.value.stock -= 1
+
+    // ✅ Add to Cart Store
+    cartStore.addToCart({
+      id: product.value.id,
+      name: product.value.name,
+      price: product.value.price,
+      image: getImage(product.value.name)
+    })
   }
 }
 

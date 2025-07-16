@@ -17,7 +17,8 @@
       </div>
       <div class="options">
         <label><input type="checkbox" /> Remember me</label>
-        <a href="#">Forgot Password?</a>
+        <!-- ✅ Link to Forgot Password Page -->
+        <a @click="goToForgotPassword" class="forgot-link">Forgot Password?</a>
       </div>
       <button class="signup-btn" @click="goToSignUp">SIGN UP</button>
       <button @click="login">LOGIN</button>
@@ -37,9 +38,13 @@ const password = ref('')
 const error = ref('')
 const router = useRouter()
 
-// ✅ Move this OUTSIDE of login()
 const goToSignUp = () => {
   router.push('/signup')
+}
+
+// ✅ Navigate to Forgot Password page
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
 }
 
 const login = async () => {
@@ -63,7 +68,6 @@ const login = async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
     const uid = userCredential.user.uid
 
-    // ✅ Read role from Firestore using UID
     const userDoc = await getDoc(doc(db, 'users', uid))
     if (userDoc.exists()) {
       const role = userDoc.data().role
@@ -71,7 +75,7 @@ const login = async () => {
       if (role === 'admin') {
         router.push('/') // Admin Dashboard
       } else if (role === 'user') {
-        router.push('/user') // Create this route if needed
+        router.push('/user')
       } else {
         error.value = 'Unauthorized role access.'
       }
@@ -84,7 +88,6 @@ const login = async () => {
   }
 }
 </script>
-
 
 <style scoped>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
@@ -164,6 +167,12 @@ input {
   font-size: 13px;
   margin-bottom: 20px;
   color: #133a6f;
+}
+
+.forgot-link {
+  cursor: pointer;
+  color: #133a6f;
+  text-decoration: underline;
 }
 
 button {

@@ -51,6 +51,8 @@ const getImageForProduct = (name) => {
   if (lower.includes('metaretail')) return '/images/redbvlgari.jpg'
   if (lower.includes('casio')) return '/images/casio.jpg'
   if (lower.includes('g-shock')) return '/images/sportwatch.jpg'
+  if(lower.includes('bvlgari')) return '/images/bvlgari.jpg'
+  if(lower.includes('test1')) return '/images/modernwatch.png'
   return '/images/image.jpg'
 }
 

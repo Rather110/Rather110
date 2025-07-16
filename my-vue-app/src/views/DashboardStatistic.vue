@@ -1,14 +1,13 @@
 <template>
   <div class="dashboard-statistics">
     <button class="back-btn" @click="$router.back()">← Back</button>
-    <h1>Statistics</h1>
+    <h1>Stock Distribution by Brand</h1>
 
     <div class="summary-box">
-      <p><strong>Total Products:</strong> {{ productCount }}</p>
-      <p><strong>Total Stock:</strong> {{ stockCount }}</p>
+      <p><strong>Total Brands:</strong> {{ brandCount }}</p>
+      <p><strong>Total Stock:</strong> {{ totalStock }}</p>
     </div>
 
-    <!-- Fixed-height wrapper to make Pie chart show -->
     <div class="chart-wrapper">
       <Pie :data="chartData" :options="chartOptions" />
     </div>
@@ -28,18 +27,18 @@ import {
   ArcElement
 } from 'chart.js'
 
+// ✅ Register chart components
 ChartJS.register(Title, Tooltip, Legend, ArcElement)
 
-const productCount = ref(0)
-const stockCount = ref(0)
-
+const brandCount = ref(0)
+const totalStock = ref(0)
 const chartData = ref({
-  labels: ['Products', 'Total Stock'],
+  labels: [],
   datasets: [
     {
-      label: 'Inventory',
-      data: [0, 0],
-      backgroundColor: ['#42A5F5', '#66BB6A']
+      label: 'Stock by Brand',
+      data: [],
+      backgroundColor: []
     }
   ]
 })
@@ -50,21 +49,49 @@ const chartOptions = {
   plugins: {
     legend: {
       position: 'bottom'
+    },
+    title: {
+      display: true,
+      text: 'Stock Distribution (Brand-wise)',
+      font: {
+        size: 16
+      }
     }
   }
 }
 
+// ✅ Generate random colors for each brand
+const getRandomColor = () =>
+  `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
+
 const fetchStats = async () => {
   const snapshot = await getDocs(collection(db, 'watches'))
-  const totalProducts = snapshot.size
-  let totalStock = 0
+  const stockByBrand = {}
+  let total = 0
+
   snapshot.forEach(doc => {
-    totalStock += doc.data().stock || 0
+    const data = doc.data()
+    const brand = data.brand || 'Unknown'
+    const stock = data.stock || 0
+
+    if (!stockByBrand[brand]) stockByBrand[brand] = 0
+    stockByBrand[brand] += stock
+    total += stock
   })
 
-  productCount.value = totalProducts
-  stockCount.value = totalStock
-  chartData.value.datasets[0].data = [totalProducts, totalStock]
+  brandCount.value = Object.keys(stockByBrand).length
+  totalStock.value = total
+
+  chartData.value = {
+    labels: Object.keys(stockByBrand),
+    datasets: [
+      {
+        label: 'Stock by Brand',
+        data: Object.values(stockByBrand),
+        backgroundColor: Object.keys(stockByBrand).map(() => getRandomColor())
+      }
+    ]
+  }
 }
 
 onMounted(fetchStats)
@@ -85,7 +112,7 @@ h1 {
   text-align: center;
   color: #133a6f;
   margin-bottom: 20px;
-  font-size: 2rem;
+  font-size: 1.8rem;
 }
 
 .summary-box {
@@ -95,7 +122,7 @@ h1 {
 }
 
 .chart-wrapper {
-  height: 600px;  /* ✅ This gives the canvas space to render */
+  height: 400px;
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
